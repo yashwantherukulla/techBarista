@@ -6,6 +6,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.tools import DuckDuckGoSearchRun
 from Searcher import Searcher
 import requests
+from get_github_content import get_github_file_content
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -53,74 +54,77 @@ def get_github_file_content(url):
     response = requests.get(url)
     return response.text
 
-gitfile="""import os
-from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain.agents import initialize_agent, AgentType
-from langchain.tools import Tool
-from langchain_community.tools import DuckDuckGoSearchResults
+# gitfile="""import os
+# from dotenv import load_dotenv
+# from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain.prompts import PromptTemplate
+# from langchain_core.output_parsers import StrOutputParser
+# from langchain.agents import initialize_agent, AgentType
+# from langchain.tools import Tool
+# from langchain_community.tools import DuckDuckGoSearchResults
 
-import requests
-from bs4 import BeautifulSoup
-
-
-load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# import requests
+# from bs4 import BeautifulSoup
 
 
-ddg_search = DuckDuckGoSearchResults()
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-
-def parse_html(content) -> str:
-    soup = BeautifulSoup(content, 'html.parser')
-    return soup.get_text()
-
-def fetch_web_page(url: str) -> str:
-    response = requests.get(url, headers=HEADERS)
-    return parse_html(response.content)
-
-web_fetcher_tool = Tool.from_function(func=fetch_web_page, 
-                                      name="web_fetcher", 
-                                      description="Fetches the content of a web page and returns it as a string.")
+# load_dotenv()
+# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 
+# ddg_search = DuckDuckGoSearchResults()
+# HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+
+# def parse_html(content) -> str:
+#     soup = BeautifulSoup(content, 'html.parser')
+#     return soup.get_text()
+
+# def fetch_web_page(url: str) -> str:
+#     response = requests.get(url, headers=HEADERS)
+#     return parse_html(response.content)
+
+# web_fetcher_tool = Tool.from_function(func=fetch_web_page, 
+#                                       name="web_fetcher", 
+#                                       description="Fetches the content of a web page and returns it as a string.")
 
 
-llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
 
 
-prompt = PromptTemplate.from_template("Summarize the following content: {content}")
+# llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
 
-chain = prompt | llm | StrOutputParser()
 
-summarizer_tool = Tool.from_function(func=chain.invoke,
-                                     name="summarizer", 
-                                     description="Summarizes the content of a web page and returns it as a string.")
+# prompt = PromptTemplate.from_template("Summarize the following content: {content}")
 
-tools = [ddg_search, web_fetcher_tool, summarizer_tool]
+# chain = prompt | llm | StrOutputParser()
 
-agent = initialize_agent(
-    tools = tools,
-    agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    llm = llm,
-    verbose = True
-)
+# summarizer_tool = Tool.from_function(func=chain.invoke,
+#                                      name="summarizer", 
+#                                      description="Summarizes the content of a web page and returns it as a string.")
 
-if __name__ == "__main__":
-    # content = "Research how to use the requests library in Python. Use your tools to search and summarize content into a guide on how to use the requests library."
-    # print(agent.invoke({"input": content}))
-    """
+# tools = [ddg_search, web_fetcher_tool, summarizer_tool]
+
+# agent = initialize_agent(
+#     tools = tools,
+#     agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+#     llm = llm,
+#     verbose = True
+# )
+
+# if __name__ == "__main__":
+#     # content = "Research how to use the requests library in Python. Use your tools to search and summarize content into a guide on how to use the requests library."
+#     # print(agent.invoke({"input": content}))
+#     """
+
+
 chathistory = []
-while True:
-    question = input("Human: ")
+def main(question:str, codeurl) -> str:
     if (question=="exit"):
-        break
+        return "Goodbye"
+    gitfile = get_github_file_content(codeurl)
     searchquestions = create_search_qns(question, gitfile)
     searchresults = searcher.search_and_get_content(searchquestions)
-    response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory, "searchresults": searchresults})
+    response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults})
     chathistory.append((f"Human: {question}", f"AI: {response}", f"Search Results: {searchresults}"))
-    print("------------------------------------------------------")
-    print(response)
-    print("------------------------------------------------------")
+    # print("------------------------------------------------------")
+    # print(response)
+    # print("------------------------------------------------------")
+    return response
