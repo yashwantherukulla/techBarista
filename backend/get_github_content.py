@@ -19,7 +19,7 @@ def get_github_file_content(url, token):
         return "Error: Unexpected response"
 
 url = "https://api.github.com/repos/devHarshShah/techBarista/contents/frontend/app/layout.tsx"
-token = "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"
+token = ""
 
 content = get_github_file_content(url, token)
 print(content)
