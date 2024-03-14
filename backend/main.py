@@ -5,6 +5,7 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.tools import DuckDuckGoSearchRun
 from Searcher import Searcher
+import requests
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -48,6 +49,9 @@ chain = prompt | llm | StrOutputParser()
 
 searcher = Searcher()
 
+def get_github_file_content(url):
+    response = requests.get(url)
+    return response.text
 
 gitfile="""import os
 from dotenv import load_dotenv
