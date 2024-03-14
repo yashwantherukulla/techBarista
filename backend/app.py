@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-
+from main import main
 app = Flask(__name__)
 CORS(app)  
 
@@ -41,7 +41,7 @@ def get_repo_structure_comb(repo_url, path=''):
     else:
         return None
 # Get the personal access token from the user
-token = ''
+
 
 def get_repo_structure_clean(repo_url, path=''):
     # Extract the owner and repo name from the URL
@@ -115,6 +115,16 @@ def get_structure_combine():
     repo_url = data['key']
     blob = get_repo_structure_comb(repo_url)
     return {'blob':blob}, 200
+
+
+
+@app.route('/ask_code_llm', methods=['POST'])
+def askCode():
+    data = request.get_json()
+    question = data['query']
+    codeurl = data['codeurl']
+    response = main(question, codeurl)
+    return {'response': response}, 200
 
 
 
