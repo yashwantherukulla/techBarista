@@ -2,7 +2,7 @@ import { title, subtitle } from '@/components/primitives';
 
 export default function Home() {
   return (
-    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-20 md:mt-20">
+    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-20 md:mt-[8rem]">
       <div className="inline-block text-center justify-center">
         <h1 className={title()}>Make Coding Easier&nbsp;</h1>
         <br />

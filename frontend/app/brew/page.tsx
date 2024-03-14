@@ -2,7 +2,7 @@
 import React, { useState, ChangeEvent } from 'react';
 import { Card, CardBody, Input } from '@nextui-org/react';
 import { Button } from '@nextui-org/button';
-import FolderStructure from '../../components/folderstructure'; // import your FolderStructure component
+import Search from '../../components/search';
 
 export default function App() {
   const [inputValue, setInputValue] = useState('');
@@ -30,7 +30,7 @@ export default function App() {
   };
 
   if (data) {
-    return <FolderStructure data={data} />;
+    return <Search data={data} />;
   }
 
   return (

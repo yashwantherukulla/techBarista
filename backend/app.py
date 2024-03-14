@@ -6,7 +6,7 @@ app = Flask(__name__)
 CORS(app)  
 
 import base64
-token = ''
+token = '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'
 def get_repo_structure_comb(repo_url, path=''):
     # Extract the owner and repo name from the URL
     owner, repo = repo_url.split('github.com/')[-1].split('/')
@@ -40,8 +40,6 @@ def get_repo_structure_comb(repo_url, path=''):
         return structure
     else:
         return None
-# Get the personal access token from the user
-token = ''
 
 def get_repo_structure_clean(repo_url, path=''):
     # Extract the owner and repo name from the URL
