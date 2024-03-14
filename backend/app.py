@@ -3,10 +3,43 @@ import requests
 
 app = Flask(__name__)
 
-from getpass import getpass
-
-# Get the personal access token from the user
+import base64
 token = ''
+def get_repo_structure_comb(repo_url, path=''):
+    # Extract the owner and repo name from the URL
+    owner, repo = repo_url.split('github.com/')[-1].split('/')
+    
+    # GitHub API URL for the repo contents
+    api_url = f'https://api.github.com/repos/{owner}/{repo}/contents/{path}'
+    
+    # Send a GET request to GitHub API
+    headers = {'Authorization': f'token {token}'}
+    response = requests.get(api_url, headers=headers)
+    
+    # If the request was successful, process the JSON response
+    if response.status_code == 200:
+        contents = response.json()
+        structure = {'name': path.split('/')[-1] if path else repo, 'type': 'dir', 'content': [], 'url': api_url, 'api_url': api_url}
+        for item in contents:
+            if item['type'] == 'dir':
+                # If the item is a directory, fetch its contents recursively
+                item_structure = get_repo_structure_comb(repo_url, item['path'])
+                structure['content'].append(item_structure)
+            else:
+                # If the item is a file, add it to the structure
+                structure['content'].append({
+                    'name': item['name'],
+                    'type': 'file',
+                    'path': item['path'],
+                    'url': item['html_url'],
+                    'api_url': api_url,
+                    'content': base64.b64decode(item['content']).decode('utf-8') if 'content' in item else None
+                })
+        return structure
+    else:
+        return None
+# Get the personal access token from the user
+
 
 def get_repo_structure_clean(repo_url, path=''):
     # Extract the owner and repo name from the URL
@@ -44,14 +77,11 @@ def get_repo_structure_clean(repo_url, path=''):
     else:
         return None
     
-
 def get_repo_structure_blob(repo_url, path=''):
     # Extract the owner and repo name from the URL
     owner, repo = repo_url.split('github.com/')[-1].split('/')
-    
     # GitHub API URL for the repo contents
     api_url = f'https://api.github.com/repos/{owner}/{repo}/contents/{path}'
-    
     # Send a GET request to the GitHub API
     headers = {'Authorization': f'token {token}'}
     response = requests.get(api_url, headers=headers)
@@ -60,6 +90,8 @@ def get_repo_structure_blob(repo_url, path=''):
         return contents
     else:
         return None
+
+
 
 @app.route('/get_structure_clean', methods=['POST'])
 def get_structure_clean():
@@ -73,6 +105,13 @@ def get_structure_blob():
     data = request.get_json()
     repo_url = data['key']
     blob = get_repo_structure_blob(repo_url)
+    return {'blob':blob}, 200
+
+@app.route('/get_structure_comb', methods=['POST'])
+def get_structure_combine():
+    data = request.get_json()
+    repo_url = data['key']
+    blob = get_repo_structure_comb(repo_url)
     return {'blob':blob}, 200
 
 
