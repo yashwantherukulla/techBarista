@@ -1,12 +1,14 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import requests
 
 app = Flask(__name__)
+CORS(app)  
 
 from getpass import getpass
 
 # Get the personal access token from the user
-token = ''
+token = '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'
 
 def get_repo_structure_clean(repo_url, path=''):
     # Extract the owner and repo name from the URL

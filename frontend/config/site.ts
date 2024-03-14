@@ -14,7 +14,7 @@ export const siteConfig = {
     },
     {
       label: 'Brew Pedia',
-      href: '/brew-pedia',
+      href: '/brew',
     },
     {
       label: 'About',
