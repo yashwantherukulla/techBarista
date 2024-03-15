@@ -37,7 +37,7 @@ const Search = ({ data }: { data: Item[] }) => {
 
     // Get the URL of the selected file
     let repo = localStorage.getItem('repo-link');
-    const response = await fetch('http://127.0.0.1:5000/get_file_url', {
+    const response = await fetch('http://127.0.0.1:8000/get_file_url', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ const Search = ({ data }: { data: Item[] }) => {
 
     const data = await response.json();
     const fileUrl = data.file_url;
-    const searchResponse = await fetch('http://127.0.0.1:5000/ask_code_llm', {
+    const searchResponse = await fetch('http://127.0.0.1:8000/ask_code_llm', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

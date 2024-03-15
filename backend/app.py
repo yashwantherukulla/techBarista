@@ -1,19 +1,28 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+import base64
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware  # Import the CORS middleware
+from pydantic import BaseModel
 import requests
 import asyncio
 import sys
+from main import main
 
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    
-from main import main
-app = Flask(__name__)
-CORS(app)  
 
-import base64
+app = FastAPI()
 
-token = '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'
+# Add the CORS middleware to your FastAPI application
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],
+)
+
+token = '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'
+
 def get_repo_structure_comb(repo_url, path=''):
     # Extract the owner and repo name from the URL
     owner, repo = repo_url.split('github.com/')[-1].split('/')
@@ -100,56 +109,56 @@ def get_repo_structure_blob(repo_url, path=''):
     else:
         return None
 
-@app.route('/get_structure_clean', methods=['POST'])
-def get_structure_clean():
-    data = request.get_json()
-    repo_url = data['key']
+
+# Define request models
+class RepoUrl(BaseModel):
+    key: str
+
+class QueryCodeUrl(BaseModel):
+    query: str
+    codeurl: str
+
+class RepoUrlFilePath(BaseModel):
+    repo_url: str
+    file_path: str
+
+# Define your routes
+@app.post('/get_structure_clean')
+async def get_structure_clean(data: RepoUrl):
+    repo_url = data.key
     structure = get_repo_structure_clean(repo_url)
-    return {'clean': structure}, 200
+    return {'clean': structure}
 
-@app.route('/get_structure_blob', methods=['POST'])
-def get_structure_blob():
-    data = request.get_json()
-    repo_url = data['key']
+@app.post('/get_structure_blob')
+async def get_structure_blob(data: RepoUrl):
+    repo_url = data.key
     blob = get_repo_structure_blob(repo_url)
-    return {'blob':blob}, 200
+    return {'blob': blob}
 
-@app.route('/get_structure_comb', methods=['POST'])
-def get_structure_combine():
-    data = request.get_json()
-    repo_url = data['key']
-    blob = get_repo_structure_comb(repo_url)
-    return {'blob':blob}, 200
+@app.post('/get_structure_comb')
+async def get_structure_combine(data: RepoUrl):
+    repo_url = data.key
+    blob =  get_repo_structure_comb(repo_url)
+    return {'blob': blob}
 
-@app.route('/ask_code_llm', methods=['POST'])
-def askCode():
-    data = request.get_json()
-    question = data['query']
-    codeurl = data['codeurl']
+@app.post('/ask_code_llm')
+async def askCode(data: QueryCodeUrl):
+    question = data.query
+    codeurl = data.codeurl
+    response = await main(question, codeurl)
+    return {'response': response}
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    response = loop.run_until_complete(main(question, codeurl))
-    loop.close()
+@app.post('/summarize_using_llm')
+async def sumCode(data: QueryCodeUrl):
+    question = data.query
+    codeurl = data.codeurl
+    response = await main(question, codeurl)
+    return {'response': response}
 
-    return {'response': response}, 200
-
-@app.route('/summarize_using_llm', methods=['POST'])
-def sumCode():
-    data = request.get_json()
-    question = data['query']
-    codeurl = data['codeurl']
-    response = main(question, codeurl)
-    return {'response': response}, 200
-
-@app.route('/get_file_url', methods=['POST'])
-def get_file_url():
-    data = request.get_json()
-    repo_url = data['repo_url']
-    file_path = data['file_path']
+@app.post('/get_file_url')
+async def get_file_url(data: RepoUrlFilePath):
+    repo_url = data.repo_url
+    file_path = data.file_path
     owner, repo = repo_url.split('github.com/')[-1].split('/')
     file_url = f'https://api.github.com/repos/{owner}/{repo}/contents{file_path}'
-    return {'file_url': file_url}, 200
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    return {'file_url': file_url}
