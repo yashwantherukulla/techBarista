@@ -2,17 +2,18 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import asyncio
+import sys
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
 from main import main
 app = Flask(__name__)
 CORS(app)  
 
 import base64
 
-
-
-
-
-token = ''
+token = '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'
 def get_repo_structure_comb(repo_url, path=''):
     # Extract the owner and repo name from the URL
     owner, repo = repo_url.split('github.com/')[-1].split('/')
