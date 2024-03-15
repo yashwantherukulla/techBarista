@@ -13,26 +13,30 @@ from chat_hist import chathistory
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 ghtoken = ""
+
+llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
+
 def create_search_qns(question, context):
 
-    SQprompt = PromptTemplate.from_template("""You are an expert question asker, Now your task is to ask questions which expand upon a question given using the context (which is most probably a code file) as reference and guide.
-                                            These questions are used to guide the user to the answer they are looking for. Keep that in mind.
-                                            NOTE:1) You are not allowed to ask questions that are already asked.
-                                            2) your questions must be relevant to the given question and context.
-                                            3) you are allowed to ask a maximum of 3 questions.
-                                            4) you must ask a minimum of 1 questions.
-                                            5) your questions must delve deeper into the topic based on the given question and the depth asked.
-                                            6) The output must be in a list format.
-                                            7) The output must be such that, those questions are most probable to be asked by a human based on context and question.
-                                            8) The output MUST be relevant to the CONTEXT.
-                                            9) The questions must be specific to the given context.
-                                            10) In the output, DON'T use vague words (like this, that, over there, this file, etc.). Be specific and direct.
-                                            Ex:
-                                            question: "What is the purpose of this code?"
-                                            context: "Assume, This is a code file that contains a class that is used to create a new user.(In reality it will be code)"
-                                            output: ["What is a class?", "how to create a new class?", "what is the purpose of a class?", "how to manage users?"] 
-                                        
-                                            Now, the given question is, {question} and the given context is, {context}.""")
+    SQprompt = PromptTemplate.from_template("""As an AI trained to generate questions, your task is to create a set of questions that delve deeper into a given topic, using a provided context (typically a code file) as a reference. Your questions should guide the user towards the answers they seek.
+
+Please adhere to the following guidelines:
+1) Do not repeat questions.
+2) Ensure your questions are relevant to both the given question and context.
+3) Generate a minimum of 1 and a maximum of 4 questions.
+4) Your questions should explore the topic in depth, based on the given question.
+5) The output should be a list of questions.
+6) The questions should be likely to be asked by a human, given the context and question.
+7) The questions MUST be relevant to the CONTEXT.
+8) Be specific to the given context in your questions.
+9) Avoid vague language in your questions. Be specific and direct.
+
+For example:
+Given question: "What is the purpose of this code?"
+Given context: "Assume, This is a code file that contains a class that is used to create a new user.(In reality it will be code)"
+Output: ["What is a class?", "How does one create a new class?", "What is the purpose of a class?", "How does this code manage users?"]
+
+Now, let's generate questions for the given question: {question} and the given context: {context}.""")
 
     chain = SQprompt | llm | StrOutputParser()
     search_qns = chain.invoke({"question": question, "context": context})
@@ -41,17 +45,24 @@ def create_search_qns(question, context):
     return search_qns
 
 
-prompt = PromptTemplate.from_template("""You are a chatbot that assists users in navigating through code files. You will take four inputs: "context", which represents a code file, and "question", which represents a question asked by the user regarding the code, "conversation history", which represents the conversation history till now, and "search results", which represents the search results when the "question" is searched in the web. 
-                                      You should maintain a friendly and professional demeanor while providing factual assistance. You should refrain from inventing information and strictly adhere to the contents of the provided code file. Your goal is to be a helpful tool that aids users in understanding and utilizing the code effectively.
-                                      You should maintain a friendly and professional demeanor while providing factual assistance. You should refrain from inventing information and strictly adhere to the contents of the provided code file. Your goal is to be a helpful tool that aids users in understanding and utilizing the code effectively.
-                                      You are Designed to offer guidance, explanations, and assistance based solely on the information present in the provided code file. Ensure that it handles various types of questions related to code structure, syntax, functionality, and best practices.
-                                      Remember to prioritize clarity, accuracy, and user-friendly interactions to deliver a positive experience for users seeking assistance with code comprehension and navigation.
-                                      NOTE: The output must be in a string format.
-                                      NOTE: the given references must not be used directly in the output unless it is absolutely necessary.
-                                      question: {question}\n
-                                      context: {context}\n
-                                      conversation history: {chathistory}\n
-                                      search results: {searchresults}""")
+prompt = PromptTemplate.from_template("""As an AI chatbot, your role is to assist users in understanding code files. You will receive four inputs: 
+1) 'context': a code file 
+2) 'question': a user's query about the code 
+3) 'conversation history': the ongoing dialogue 
+4) 'search results': the results from a web search of the 'question' related to 'context'.
+
+Your responses should be factual, professional, and friendly, strictly based on the provided code file. Your goal is to help users effectively understand and utilize the code.
+
+Ensure your guidance covers various aspects of code comprehension, including structure, syntax, functionality, and best practices. Prioritize clarity, accuracy, and user-friendly interactions to deliver a positive user experience.
+
+Please note:
+- The output should be a string.
+- Use the conversation history to provide contextually relevant responses.
+- Aim for an output length of around 400 words, although this is not a strict limit.
+- You may use the provided references in your final output if necessary.
+- If asked to explain the code, use the actual code to clarify its functionality.
+
+Now, let's generate a response for the given question: {question}, context: {context}, conversation history: {chathistory}, and search results: {searchresults}.""")
 
 
 async def summarize_repo(api_response:dict, token):
@@ -61,19 +72,23 @@ async def summarize_repo(api_response:dict, token):
             if item['type'] == 'file':
                 file_info[item['url']] = item['path']
             elif item['type'] == 'dir':
-                process_items(item['content'], file_info)  # Recursive call
+                process_items(item['content'], file_info)
 
     file_info = {}
     process_items(api_response['blob']['content'], file_info)
 
     
-    summarize_file_prompt = PromptTemplate.from_template("""You are a chatbot that assists users in navigating through code files.
-                                                  write a summary of the given code file under 150 words.
-                                                  you will get one input, "context", which represents a file in a git repository.
-                                                  Now, you are an expert summarizer and your summaries are one the best.
-                                                  You should provide a brief summary of the code file, including its purpose, functionality, and any other relevant information.
-                                                  NOTE: The output must be in a string format and point wise.
-                                                  context: {context}""")
+    summarize_file_prompt = PromptTemplate.from_template("""As an AI chatbot, your role is to assist users in understanding code files. You will receive one input, 'context', which represents a code file in a Git repository. 
+
+Your task is to summarize the code file. You are expected to provide a concise summary, ideally under 150 words. However, if the file is extensive, the summary can extend up to 250 words.
+
+Your summary should include the file's purpose, functionality, and any other pertinent details. 
+
+Please note:
+- The output should be a string.
+- The summary should be presented in a point-wise format for clarity.
+
+Now, let's generate a summary for the given context: {context}.""")
     sum_file_chain = summarize_file_prompt | llm | StrOutputParser()
     file_summaries = []
     for fileurl, filepath in file_info.items():
@@ -81,27 +96,81 @@ async def summarize_repo(api_response:dict, token):
         summary = sum_file_chain.invoke({"context": file})
         file_summaries.append((filepath, summary))
 
-    summarizer_prompt = PromptTemplate.from_template("""You are a chatbot that assists users in navigating through code files.
-                                                    You will take one input: it is, "abt_files", which represents the file structure of the entire git repository with summaries of what each of them does.
-                                                    Using the file structure, you should summarize the code files and provide a brief overview of the files and explain their relationship with other files.
-                                                    In this task, you should provide a brief summary of the code files, including their purpose, functionality, how it fits in and any other relevant information.
-                                                    You should maintain a friendly and professional demeanor while providing factual assistance. You should refrain from inventing information and strictly adhere to the contents of the provided code file. Your goal is to be a helpful tool that aids users in understanding and utilizing the code effectively.
-                                                    You are Designed to offer guidance, explanations, and assistance based solely on the information present in the provided code file. Ensure that it handles various types of questions related to code structure, syntax, functionality, and best practices.
-                                                    Remember to prioritize clarity, accuracy, and user-friendly interactions to deliver a positive experience for users seeking assistance with code comprehension and navigation.
-                                                    NOTE: The output must be in a string format.
-                                                    NOTE: the given references must not be used directly in the output unless it is absolutely necessary.
-                                                    NOTE: The input will be in the form of a list of tuples, where each tuple contains the file path and the summary of the file.
-                                                    NOTE: You must keep in mind the relationship between the files and provide a summary that reflects the same.
-                                                    NOTE: Make use of the file structure given to provide a summary that reflects the relationship between the files. (Ex: if the path is /src/app/index.js, the summary should reflect the relationship between the index.js file and the app folder and everything else.)
-                                                    information of the github repository: {abt_files}""")
+    summarizer_prompt = PromptTemplate.from_template("""As an AI chatbot, your role is to assist users in understanding code files. You will receive one input, 'abt_files', which represents the file structure of an entire Git repository, along with summaries of each file.
+
+Your task is to provide an overview of the code file's summary, summarizing their purpose, functionality, and their relationship with other files, based on the provided summaries.
+
+Please adhere to the following guidelines:
+- Maintain a friendly and professional demeanor.
+- Provide factual assistance based on the contents of the provided code files.
+- Prioritize clarity, accuracy, and user-friendly interactions.
+- The output should be a string, presented in a point-wise format.
+- The input will be a list of tuples, each containing a file path and a summary.
+- Using the file path as identifier, figure out the relationship between the files and summarize them.
+- Keep the output length between 400 and 1000 words, ideally around 600 words.
+- Reflect the relationship between the files in your summary.
+
+For example, if the path is '/src/app/index.js', the summary should reflect the relationship between the 'index.js' file, the 'app' folder, and the rest of the structure.
+
+Now, let's generate an overview for the given repository information: {abt_files}.""")
     repo_sum_chain = summarizer_prompt | llm | StrOutputParser()
     repo_sum = repo_sum_chain.invoke({"abt_files": file_summaries})
 
     return repo_sum
 
+def summarize_dir(api_response_dir:dict, token):
+    file_info = {}
+    def process_items(items, file_info):
+        for item in items:
+            if item['type'] == 'file':
+                file_info[item['url']] = item['path']
+            elif item['type'] == 'dir':
+                process_items(item['content'], file_info)
+
+    file_info = {}
+    process_items(api_response_dir['blob']['content'], file_info)
+
+    
+    summarize_file_prompt = PromptTemplate.from_template("""As an AI chatbot, your role is to assist users in understanding code files. You will receive one input, 'context', which represents a code file in a Git repository.
+
+Your task is to summarize the code file. Aim to keep your summary under 100 words. Your summary should include the file's purpose, functionality, and any other pertinent details.
+
+Please note:
+- The output should be a string.
+- The summary should be presented in a point-wise format for clarity.
+
+Now, let's generate a summary for the given context: {context}.""")
+    sum_file_chain = summarize_file_prompt | llm | StrOutputParser()
+    file_summaries = []
+    for fileurl, filepath in file_info.items():
+        file = get_github_file_content(fileurl, token)
+        summary = sum_file_chain.invoke({"context": file})
+        file_summaries.append((filepath, summary))
+
+    summarizer_dir_prompt = PromptTemplate.from_template("""As an AI chatbot, your role is to assist users in understanding code files. You will receive one input, 'abt_dir_files', which represents the file structure of a folder in a Git repository, along with summaries of each file.
+
+Your task is to provide an overview of the code files, summarizing their purpose, functionality, and their relationship with other files, based on the provided summaries.
+
+Please adhere to the following guidelines:
+- Maintain a friendly and professional demeanor.
+- Provide factual assistance based on the contents of the provided code files.
+- Prioritize clarity, accuracy, and user-friendly interactions.
+- The output should be a string, presented in a point-wise format.
+- The input will be a list of tuples, each containing a file path and a summary.
+- Keep the output length between 200 and 500 words, ideally around 300 words.
+- Reflect the relationship between the files in your summary.
+
+For example, if the path is '/src/app/index.js', the summary should reflect the relationship between the 'index.js' file, the 'app' folder, and the rest of the structure.
+
+Now, let's generate an overview for the given repository information: {abt_dir_files}.""")
+    dir_sum_chain = summarizer_dir_prompt | llm | StrOutputParser()
+    dir_sum = dir_sum_chain.invoke({"abt_dir_files": file_summaries})
+
+    return dir_sum
+
+repo_summary = summarize_repo(api_response, ghtoken)
 
 
-llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
 chain = prompt | llm | StrOutputParser()
 
 searcher = Searcher()
@@ -121,7 +190,7 @@ def get_github_file_content(url:str, token:str):
         return "Error: Unexpected response"
 
 
-async def main(question:str, codeurl) -> str:
+async def main(question:str, codeurl="None") -> str:
     if question == "exit":
         return "Goodbye"
         
@@ -130,12 +199,17 @@ async def main(question:str, codeurl) -> str:
     searchresults = {}
     for qn in searchquestions:
         searchresults[qn] = await searcher.search_and_get_content(qn)
-    response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults})
+
+    if codeurl=="None":
+        response = chain.invoke({"question": question, "context": "", "chathistory": chathistory[:10], "searchresults": searchresults, "repo_summary": repo_summary})
+    else:  
+      response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults, "repo_summary": repo_summary})
+
     chathistory.append((f"Human: {question}", f"AI: {response}", f"Search Results: {searchresults}"))
     return response
 
 
-# print(asyncio.run(main("what is this about?", "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/.eslintrc.json")))
+print(asyncio.run(main("what is this about?", "https://api.github.com/repos/devHarshShah/techBarista/frontend/postcss.config.js")))
 
 import httpx
 
