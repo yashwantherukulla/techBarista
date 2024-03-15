@@ -74,20 +74,20 @@ async def main(question:str, codeurl) -> str:
         return "Goodbye"
     gitfile = get_github_file_content(codeurl, ghtoken)
     searchquestions = create_search_qns(question, gitfile)
-    print("------------------------------------------------------")
-    print(searchquestions)
-    print("------------------------------------------------------")
+    # print("------------------------------------------------------")
+    # print(searchquestions)
+    # print("------------------------------------------------------")
     searchresults = {}
     for qn in searchquestions:
         searchresults[qn] = await searcher.search_and_get_content(qn)
-        print(f"{await searcher.search_and_get_content(qn)}\n\n\n\n\n")
-    print("------------------------------------------------------")
-    print(searchresults)
-    print("------------------------------------------------------")
+    #     print(f"{await searcher.search_and_get_content(qn)}\n\n\n\n\n")
+    # print("------------------------------------------------------")
+    # print(searchresults)
+    # print("------------------------------------------------------")
     response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults})
     chathistory.append((f"Human: {question}", f"AI: {response}", f"Search Results: {searchresults}"))
     # return ''
     return response
 
 
-print(asyncio.run(main("what is this about?", "https://api.github.com/repos/yashwantherukulla/SpeakBot/contents/va_bing.py")))
+# print(asyncio.run(main("what is this about?", "https://api.github.com/repos/yashwantherukulla/SpeakBot/contents/va_bing.py")))
