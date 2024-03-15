@@ -8,7 +8,7 @@ interface Item {
     contents?: Item[];
 }
 
-const FolderStructure = ({ data }: { data: Item[] }) => {
+const FolderStructure = ({ data, onFileSelect, path = '' }: { data: Item[], onFileSelect: (filePath: string, fileName: string) => void, path?: string }) => {
     const [openFolders, setOpenFolders] = useState<string[]>([]);
 
     const handleClick = (name: string) => {
@@ -19,6 +19,10 @@ const FolderStructure = ({ data }: { data: Item[] }) => {
                 return [...prev, name];
             }
         });
+    };
+
+    const handleFileClick = (name: string) => {
+        onFileSelect(path, name); // call the callback function with the file path and name
     };
 
     return (
@@ -32,11 +36,11 @@ const FolderStructure = ({ data }: { data: Item[] }) => {
                         </div>
                     ) : (
                         <div className="flex items-center pl-6">
-                            <AiFillFile className="ml-[0.09rem]" /> {item.name}
+                            <AiFillFile className="ml-[0.09rem]" /> <span onClick={() => handleFileClick(item.name)} className='cursor-pointer'>{item.name}</span>
                         </div>
                     )}
                     {item.type === 'dir' && openFolders.includes(item.name) && item.contents && (
-                        <FolderStructure data={item.contents} />
+                        <FolderStructure data={item.contents} onFileSelect={onFileSelect} path={path + '/' + item.name} />
                     )}
                 </li>
             ))}

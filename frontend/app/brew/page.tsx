@@ -25,7 +25,8 @@ export default function App() {
       console.error('HTTP error', response.status);
     } else {
       const data = await response.json();
-      setData(data.clean); 
+      setData(data.clean);
+      localStorage.setItem('repo-link', inputValue);
     }
   };
 
