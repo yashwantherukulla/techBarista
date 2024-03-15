@@ -10,7 +10,7 @@ export const siteConfig = {
     },
     {
       label: 'Instant Coffee',
-      href: '/instant-coffee',
+      href: '/instant',
     },
     {
       label: 'Brew Pedia',

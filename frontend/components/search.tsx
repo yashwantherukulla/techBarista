@@ -149,7 +149,7 @@ const Search = ({ data }: { data: Item[] }) => {
         </div>
         <div className="w-full p-10 flex items-center">
           <div className="w-[30%] border-2 border-purple-500 rounded-l-xl p-[0.36rem] flex items-center justify-center bg-purple-200 bg-opacity-[20%] text-purple-500">{selectedFile === 'None' ? 'None' : selectedFile}</div>
-          <Input type="email" variant="bordered" radius="none" value={inputValue} onChange={handleInputChange} />
+          <Input type="text" variant="bordered" radius="none" value={inputValue} onChange={handleInputChange} />
           <Button color="primary" radius="none" style={{ backgroundColor: 'rgba(59, 130, 246, 0.3)', border: '2px solid rgb(59,130,246)', color: 'rgb(59,130,246)', fontWeight: 'bold' }} className="rounded-r-xl" onClick={handleButtonClick}>
             Send
           </Button>

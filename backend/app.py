@@ -127,12 +127,29 @@ class RepoUrlFilePath(BaseModel):
     repo_url: str
     file_path: str
 
+class questionaire(BaseModel):
+    answer: str = 'None'
+
+@app.post('/get_question')
+async def get_structure_clean(data: questionaire):
+    answer = data.answer
+    response = {'question': 'Ohh I think we have lost'}
+    if answer == 'None':
+        return {'question': 'Have an idea in your mind? You\'ve landed at the right place! Tell me about it?'}
+    else:
+        pass
+    
+    return response
+
+
 # Define your routes
 @app.post('/get_structure_clean')
 async def get_structure_clean(data: RepoUrl):
     repo_url = data.key
     structure = get_repo_structure_clean(repo_url)
     return {'clean': structure}
+
+
 
 @app.post('/get_structure_blob')
 async def get_structure_blob(data: RepoUrl):
