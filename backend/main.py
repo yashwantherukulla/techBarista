@@ -7,11 +7,10 @@ from Searcher import Searcher
 import requests
 import base64
 import asyncio
-from chroma import *
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-ghtoken = ""
+ghtoken = "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"
 def create_search_qns(question, context):
 
     SQprompt = PromptTemplate.from_template("""You are an expert question asker, Now your task is to ask questions which expand upon a question given using the context (which is most probably a code file) as reference and guide.
@@ -114,7 +113,6 @@ def get_github_file_content(url:str, token:str):
 chathistory=[]
 async def main(question:str, codeurl) -> str:
     if question == "exit":
-        collection.clear()
         return "Goodbye"
         
     gitfile = get_github_file_content(codeurl, ghtoken)
@@ -403,4 +401,4 @@ api_response = {
 }
 
 
-print(summarize_repo(api_response, ghtoken))
+# print(summarize_repo(api_response, ghtoken))

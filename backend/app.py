@@ -12,7 +12,7 @@ import base64
 
 
 
-token = ''
+token = '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'
 def get_repo_structure_comb(repo_url, path=''):
     # Extract the owner and repo name from the URL
     owner, repo = repo_url.split('github.com/')[-1].split('/')
@@ -151,4 +151,4 @@ def get_file_url():
     return {'file_url': file_url}, 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8080)
+    app.run(debug=True)
