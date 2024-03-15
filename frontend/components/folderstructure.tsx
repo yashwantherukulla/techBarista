@@ -31,12 +31,12 @@ const FolderStructure = ({ data, onFileSelect, path = '' }: { data: Item[], onFi
                 <li key={index} className="mt-1">
                     {item.type === 'dir' ? (
                         <div className="flex items-center" onClick={() => handleClick(item.name)}>
-                            {openFolders.includes(item.name) ? <MdKeyboardArrowDown /> : <MdKeyboardArrowRight />}
-                            <AiFillFolder className="ml-2" /> {item.name}
+                            {openFolders.includes(item.name) ? <MdKeyboardArrowDown color="blue" /> : <MdKeyboardArrowRight color="blue" />}
+                            <AiFillFolder color="yellow" className="ml-2" /> {item.name}
                         </div>
                     ) : (
                         <div className="flex items-center pl-6">
-                            <AiFillFile className="ml-[0.09rem]" /> <span onClick={() => handleFileClick(item.name)} className='cursor-pointer'>{item.name}</span>
+                            <AiFillFile color="green" className="ml-[0.09rem]" /> <span onClick={() => handleFileClick(item.name)} className='cursor-pointer'>{item.name}</span>
                         </div>
                     )}
                     {item.type === 'dir' && openFolders.includes(item.name) && item.contents && (

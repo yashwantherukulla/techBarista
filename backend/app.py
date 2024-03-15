@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import asyncio
 from main import main
 app = Flask(__name__)
 CORS(app)  
@@ -124,7 +125,12 @@ def askCode():
     data = request.get_json()
     question = data['query']
     codeurl = data['codeurl']
-    response = main(question, codeurl)
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    response = loop.run_until_complete(main(question, codeurl))
+    loop.close()
+
     return {'response': response}, 200
 
 @app.route('/summarize_using_llm', methods=['POST'])
@@ -145,4 +151,4 @@ def get_file_url():
     return {'file_url': file_url}, 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8080)
