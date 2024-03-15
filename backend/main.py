@@ -7,10 +7,11 @@ from Searcher import Searcher
 import requests
 import base64
 import asyncio
+from chroma import *
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-ghtoken = ""
+ghtoken = "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"
 def create_search_qns(question, context):
 
     SQprompt = PromptTemplate.from_template("""You are an expert question asker, Now your task is to ask questions which expand upon a question given using the context (which is most probably a code file) as reference and guide.
@@ -45,7 +46,8 @@ prompt = PromptTemplate.from_template("""You are a chatbot that assists users in
                                       question: {question}\n
                                       context: {context}\n
                                       conversation history: {chathistory}\n
-                                      search results: {searchresults}""")
+                                      search results: {searchresults}
+                                      relevent conversation: {rel_convo}""")
 
 llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
 chain = prompt | llm | StrOutputParser()
@@ -70,24 +72,26 @@ def get_github_file_content(url:str, token:str):
 
 chathistory=[]
 async def main(question:str, codeurl) -> str:
-    if (question=="exit"):
+    if question == "exit":
+        collection.clear()
         return "Goodbye"
+        
     gitfile = get_github_file_content(codeurl, ghtoken)
     searchquestions = create_search_qns(question, gitfile)
-    print("------------------------------------------------------")
-    print(searchquestions)
-    print("------------------------------------------------------")
+    # print("------------------------------------------------------")
+    # print(searchquestions)
+    # print("------------------------------------------------------")
     searchresults = {}
     for qn in searchquestions:
-        searchresults[qn] = await searcher.search_and_get_content(qn)
-        print(f"{await searcher.search_and_get_content(qn)}\n\n\n\n\n")
-    print("------------------------------------------------------")
-    print(searchresults)
-    print("------------------------------------------------------")
-    response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults})
+        result = await searcher.search_and_get_content(qn)
+        searchresults[qn] = result
+        # print(f"{result}\n\n\n\n\n")
+    # print("------------------------------------------------------")
+    # print(searchresults)
+    # print("------------------------------------------------------")
+    response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults, "rel_convo": get_relevant_convo(question, gitfile, chathistory, searchresults)})
     chathistory.append((f"Human: {question}", f"AI: {response}", f"Search Results: {searchresults}"))
     # return ''
     return response
 
-
-print(asyncio.run(main("what is this about?", "https://api.github.com/repos/yashwantherukulla/SpeakBot/contents/va_bing.py")))
+#print(asyncio.run(main("what is this about?", "https://api.github.com/repos/yashwantherukulla/SpeakBot/contents/va_bing.py")))

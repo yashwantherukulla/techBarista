@@ -6,7 +6,12 @@ app = Flask(__name__)
 CORS(app)  
 
 import base64
-token = ''
+
+
+
+
+
+token = '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'
 def get_repo_structure_comb(repo_url, path=''):
     # Extract the owner and repo name from the URL
     owner, repo = repo_url.split('github.com/')[-1].split('/')
@@ -122,16 +127,21 @@ def askCode():
     response = main(question, codeurl)
     return {'response': response}, 200
 
+@app.route('/summarize_using_llm', methods=['POST'])
+def sumCode():
+    data = request.get_json()
+    question = data['query']
+    codeurl = data['codeurl']
+    response = main(question, codeurl)
+    return {'response': response}, 200
+
 @app.route('/get_file_url', methods=['POST'])
 def get_file_url():
     data = request.get_json()
     repo_url = data['repo_url']
     file_path = data['file_path']
-    
     owner, repo = repo_url.split('github.com/')[-1].split('/')
-    
     file_url = f'https://api.github.com/repos/{owner}/{repo}/contents{file_path}'
-    
     return {'file_url': file_url}, 200
 
 if __name__ == '__main__':
