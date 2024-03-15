@@ -16,7 +16,7 @@ interface ChatItem {
 
 const Search = ({ data }: { data: Item[] }) => {
   const [inputValue, setInputValue] = useState(''); // add state for the input value
-  const [selectedFile, setSelectedFile] = useState(''); // add state for the selected file
+  const [selectedFile, setSelectedFile] = useState('None'); // add state for the selected file
   const [path, setPath] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatItem[]>([]); // add state for the chat history
 
@@ -27,7 +27,7 @@ const Search = ({ data }: { data: Item[] }) => {
   const handleButtonClick = async () => {
     setInputValue('');
     // Check if a file has been selected and an input value has been entered
-    if (!selectedFile || !inputValue) {
+    if (!inputValue) {
       console.error('A file must be selected and a query must be entered before sending a request');
       return;
     }
@@ -44,7 +44,7 @@ const Search = ({ data }: { data: Item[] }) => {
       },
       body: JSON.stringify({
         repo_url: repo,
-        file_path: path,
+        file_path: selectedFile === 'None' ? 'None' : path,
       }),
     });
 
@@ -78,7 +78,8 @@ const Search = ({ data }: { data: Item[] }) => {
   };
 
   const handleFileSelect = async (filePath: string, fileName: string) => {
-    setSelectedFile(fileName); // update the selected file when a file is clicked
+    // update the selected file when a file is clicked
+    setSelectedFile(fileName === '' ? 'None' : fileName);
     let fullpath = filePath + '/' + fileName;
     setPath(fullpath);
   };
@@ -107,7 +108,7 @@ const Search = ({ data }: { data: Item[] }) => {
           })}
         </div>
         <div className="w-full p-10 flex items-center">
-          <div className="w-[30%] border-2 border-purple-500 rounded-l-xl p-[0.36rem] flex items-center justify-center bg-purple-200 bg-opacity-[20%] text-purple-500">{selectedFile}</div>
+          <div className="w-[30%] border-2 border-purple-500 rounded-l-xl p-[0.36rem] flex items-center justify-center bg-purple-200 bg-opacity-[20%] text-purple-500">{selectedFile === 'None' ? 'None' : selectedFile}</div>
           <Input type="email" variant="bordered" radius="none" value={inputValue} onChange={handleInputChange} />
           <Button color="primary" radius="none" style={{ backgroundColor: 'rgba(59, 130, 246, 0.3)', border: '2px solid rgb(59,130,246)', color: 'rgb(59,130,246)', fontWeight: 'bold' }} className="rounded-r-xl" onClick={handleButtonClick}>
             Send

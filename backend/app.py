@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-token = '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'
+token = ''
 
 def get_repo_structure_comb(repo_url, path=''):
     # Extract the owner and repo name from the URL
