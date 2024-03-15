@@ -33,7 +33,7 @@ class Searcher:
 
     async def search_and_get_links(self, word):
         links = await self.aget_results(word)
-        print(links)
+        return links
 
     async def search_and_get_content(self, word):
         links = await self.aget_results(word)
@@ -45,10 +45,10 @@ class Searcher:
         return parsed_contents
 
 
-searcher = Searcher()
-async def main():
-    a1 = await searcher.search_and_get_links("how to create a class in python")
-    a2 =  await searcher.search_and_get_content("how to create a class in python")
-    return a1, a2
+# searcher = Searcher()
+# async def main():
+#     a1 = await searcher.search_and_get_links("how to create a class in python")
+#     a2 =  await searcher.search_and_get_content("how to create a class in python")
+#     return a1, a2
 
-print(asyncio.run(main()))
+# print(asyncio.run(main()))
