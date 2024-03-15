@@ -3,22 +3,22 @@ import os
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_community.tools import DuckDuckGoSearchRun
 from Searcher import Searcher
 import requests
-from get_github_content import get_github_file_content
+import base64
+import asyncio
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
+ghtoken = ""
 def create_search_qns(question, context):
 
     SQprompt = PromptTemplate.from_template("""You are an expert question asker, Now your task is to ask questions which expand upon a question given using the context (which is most probably a code file) as reference and guide.
                                             These questions are used to guide the user to the answer they are looking for. Keep that in mind.
                                             NOTE:1) You are not allowed to ask questions that are already asked.
                                             2) your questions must be relevant to the given question.
-                                            3) you are allowed to ask a maximum of 15 questions.
-                                            4) you must ask a minimum of 3 questions.
+                                            3) you are allowed to ask a maximum of 4 questions.
+                                            4) you must ask a minimum of 2 questions.
                                             5) your questions must delve deeper into the topic based on the given question and the depth asked.
                                             6) The output must be in a list format.
                                         
@@ -30,6 +30,8 @@ def create_search_qns(question, context):
 
     chain = SQprompt | llm | StrOutputParser()
     search_qns = chain.invoke({"question": question, "context": context})
+    search_qns = search_qns.split("\n")
+    search_qns = [qn for qn in search_qns if qn]
     return search_qns
 
 
@@ -50,81 +52,42 @@ chain = prompt | llm | StrOutputParser()
 
 searcher = Searcher()
 
-def get_github_file_content(url):
-    response = requests.get(url)
-    return response.text
 
-# gitfile="""import os
-# from dotenv import load_dotenv
-# from langchain_google_genai import ChatGoogleGenerativeAI
-# from langchain.prompts import PromptTemplate
-# from langchain_core.output_parsers import StrOutputParser
-# from langchain.agents import initialize_agent, AgentType
-# from langchain.tools import Tool
-# from langchain_community.tools import DuckDuckGoSearchResults
+def get_github_file_content(url:str, token:str):
+    headers = {'Authorization': f'token {token}'}
+    response = requests.get(url, headers=headers)
+    response_json = response.json()
 
-# import requests
-# from bs4 import BeautifulSoup
-
-
-# load_dotenv()
-# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    if 'content' in response_json:
+        content_base64 = response_json['content']
+        content = base64.b64decode(content_base64).decode('utf-8')
+        return content
+    elif 'message' in response_json:
+        return response_json['message']
+    else:
+        return "Error: Unexpected response"
 
 
-# ddg_search = DuckDuckGoSearchResults()
-# HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-
-# def parse_html(content) -> str:
-#     soup = BeautifulSoup(content, 'html.parser')
-#     return soup.get_text()
-
-# def fetch_web_page(url: str) -> str:
-#     response = requests.get(url, headers=HEADERS)
-#     return parse_html(response.content)
-
-# web_fetcher_tool = Tool.from_function(func=fetch_web_page, 
-#                                       name="web_fetcher", 
-#                                       description="Fetches the content of a web page and returns it as a string.")
-
-
-
-
-# llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
-
-
-# prompt = PromptTemplate.from_template("Summarize the following content: {content}")
-
-# chain = prompt | llm | StrOutputParser()
-
-# summarizer_tool = Tool.from_function(func=chain.invoke,
-#                                      name="summarizer", 
-#                                      description="Summarizes the content of a web page and returns it as a string.")
-
-# tools = [ddg_search, web_fetcher_tool, summarizer_tool]
-
-# agent = initialize_agent(
-#     tools = tools,
-#     agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-#     llm = llm,
-#     verbose = True
-# )
-
-# if __name__ == "__main__":
-#     # content = "Research how to use the requests library in Python. Use your tools to search and summarize content into a guide on how to use the requests library."
-#     # print(agent.invoke({"input": content}))
-#     """
-
-
-chathistory = []
-def main(question:str, codeurl) -> str:
+chathistory=[]
+async def main(question:str, codeurl) -> str:
     if (question=="exit"):
         return "Goodbye"
-    gitfile = get_github_file_content(codeurl)
+    gitfile = get_github_file_content(codeurl, ghtoken)
     searchquestions = create_search_qns(question, gitfile)
-    searchresults = searcher.search_and_get_content(searchquestions)
+    print("------------------------------------------------------")
+    print(searchquestions)
+    print("------------------------------------------------------")
+    searchresults = {}
+    for qn in searchquestions:
+        searchresults[qn] = await searcher.search_and_get_content(qn)
+        print(f"{await searcher.search_and_get_content(qn)}\n\n\n\n\n")
+    print("------------------------------------------------------")
+    print(searchresults)
+    print("------------------------------------------------------")
     response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults})
     chathistory.append((f"Human: {question}", f"AI: {response}", f"Search Results: {searchresults}"))
-    # print("------------------------------------------------------")
-    # print(response)
-    # print("------------------------------------------------------")
+    # return ''
     return response
+
+
+print(asyncio.run(main("what is this about?", "https://api.github.com/repos/yashwantherukulla/SpeakBot/contents/va_bing.py")))
