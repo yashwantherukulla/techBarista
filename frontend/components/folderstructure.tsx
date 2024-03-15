@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { AiFillFolder, AiFillFile } from "react-icons/ai";
-import { MdKeyboardArrowRight, MdKeyboardArrowDown } from "react-icons/md";
+import FolderOpenIcon from '@material-ui/icons/FolderOpen';
+import FolderIcon from '@material-ui/icons/Folder';
+import InsertDriveFileIcon from '@material-ui/icons/InsertDriveFile';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
 interface Item {
     name: string;
@@ -31,12 +34,12 @@ const FolderStructure = ({ data, onFileSelect, path = '' }: { data: Item[], onFi
                 <li key={index} className="mt-1">
                     {item.type === 'dir' ? (
                         <div className="flex items-center" onClick={() => handleClick(item.name)}>
-                            {openFolders.includes(item.name) ? <MdKeyboardArrowDown color="blue" /> : <MdKeyboardArrowRight color="blue" />}
-                            <AiFillFolder color="yellow" className="ml-2" /> {item.name}
+                            {openFolders.includes(item.name) ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+                            {openFolders.includes(item.name) ? <FolderOpenIcon /> : <FolderIcon />} {item.name}
                         </div>
                     ) : (
                         <div className="flex items-center pl-6">
-                            <AiFillFile color="green" className="ml-[0.09rem]" /> <span onClick={() => handleFileClick(item.name)} className='cursor-pointer'>{item.name}</span>
+                            <InsertDriveFileIcon /> <span onClick={() => handleFileClick(item.name)} className='cursor-pointer'>{item.name}</span>
                         </div>
                     )}
                     {item.type === 'dir' && openFolders.includes(item.name) && item.contents && (
