@@ -22,7 +22,7 @@ const FolderStructure = ({ data }: { data: Item[] }) => {
     };
 
     return (
-        <ul className="list-none pl-5">
+        <ul className="list-none pl-3">
             {data.map((item, index) => (
                 <li key={index} className="mt-1">
                     {item.type === 'dir' ? (
