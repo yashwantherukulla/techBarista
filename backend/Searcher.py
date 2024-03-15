@@ -14,7 +14,7 @@ class Searcher:
             response = requests.get(url)
             response.raise_for_status()  # Raise an exception if the response contains an HTTP error status code
         except requests.exceptions.RequestException as e:
-            print(f"Error getting content from {url}: {e}")
+            # print(f"Error getting content from {url}: {e}")
             return ""
 
         return response.text
@@ -50,5 +50,11 @@ class Searcher:
 #     a1 = await searcher.search_and_get_links("how to create a class in python")
 #     a2 =  await searcher.search_and_get_content("how to create a class in python")
 #     return a1, a2
+# searcher = Searcher()
+# async def main():
+#     a1 = await searcher.search_and_get_links("how to create a class in python")
+#     a2 =  await searcher.search_and_get_content("how to create a class in python")
+#     return a1, a2
 
+# print(asyncio.run(main()))
 # print(asyncio.run(main()))

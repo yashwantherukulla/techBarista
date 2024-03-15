@@ -119,6 +119,9 @@ async def main(question:str, codeurl) -> str:
     # print("------------------------------------------------------")
     # print(searchquestions)
     # print("------------------------------------------------------")
+    # print("------------------------------------------------------")
+    # print(searchquestions)
+    # print("------------------------------------------------------")
     searchresults = {}
     for qn in searchquestions:
         searchresults[qn] = await searcher.search_and_get_content(qn)

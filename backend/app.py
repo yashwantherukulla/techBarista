@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import asyncio
 from main import main
 app = Flask(__name__)
 CORS(app)  
@@ -93,8 +94,6 @@ def get_repo_structure_blob(repo_url, path=''):
     else:
         return None
 
-
-
 @app.route('/get_structure_clean', methods=['POST'])
 def get_structure_clean():
     data = request.get_json()
@@ -116,17 +115,30 @@ def get_structure_combine():
     blob = get_repo_structure_comb(repo_url)
     return {'blob':blob}, 200
 
-
-
 @app.route('/ask_code_llm', methods=['POST'])
 def askCode():
     data = request.get_json()
     question = data['query']
     codeurl = data['codeurl']
-    response = main(question, codeurl)
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    response = loop.run_until_complete(main(question, codeurl))
+    loop.close()
+
     return {'response': response}, 200
 
-
+@app.route('/get_file_url', methods=['POST'])
+def get_file_url():
+    data = request.get_json()
+    repo_url = data['repo_url']
+    file_path = data['file_path']
+    
+    owner, repo = repo_url.split('github.com/')[-1].split('/')
+    
+    file_url = f'https://api.github.com/repos/{owner}/{repo}/contents{file_path}'
+    
+    return {'file_url': file_url}, 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)
