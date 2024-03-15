@@ -8,24 +8,33 @@ import requests
 import base64
 import asyncio
 
+
+from api_resp import api_response
+from chat_hist import chathistory
+
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-ghtoken = ""
+
+ghtoken = "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"
 def create_search_qns(question, context):
 
     SQprompt = PromptTemplate.from_template("""You are an expert question asker, Now your task is to ask questions which expand upon a question given using the context (which is most probably a code file) as reference and guide.
                                             These questions are used to guide the user to the answer they are looking for. Keep that in mind.
                                             NOTE:1) You are not allowed to ask questions that are already asked.
-                                            2) your questions must be relevant to the given question.
-                                            3) you are allowed to ask a maximum of 4 questions.
-                                            4) you must ask a minimum of 2 questions.
+                                            2) your questions must be relevant to the given question and context.
+                                            3) you are allowed to ask a maximum of 3 questions.
+                                            4) you must ask a minimum of 1 questions.
                                             5) your questions must delve deeper into the topic based on the given question and the depth asked.
                                             6) The output must be in a list format.
+                                            7) The output must be such that, those questions are most probable to be asked by a human based on context and question.
+                                            8) The output MUST be relevant to the CONTEXT.
+                                            9) The questions must be specific to the given context.
+                                            10) In the output, DON'T use vague words (like this, that, over there, this file, etc.). Be specific and direct.
+                                            Ex:
+                                            question: "What is the purpose of this code?"
+                                            context: "Assume, This is a code file that contains a class that is used to create a new user.(In reality it will be code)"
+                                            output: ["What is a class?", "how to create a new class?", "what is the purpose of a class?", "how to manage users?"] 
                                         
-                                            Ex: 
-                                            question: what is the truth of life?
-                                            output: ["what is love?", "what is life?", "what is the meaning of hate?", "what is life?", "what does it mean to die?"] 
-                                            
                                             Now, the given question is, {question} and the given context is, {context}.""")
 
     chain = SQprompt | llm | StrOutputParser()
@@ -48,12 +57,18 @@ prompt = PromptTemplate.from_template("""You are a chatbot that assists users in
                                       search results: {searchresults}""")
 
 
-def summarize_repo(api_response, token):
-    # parsed_response = api_response.json()
+def summarize_repo(api_response:str, token):
+    api_response = eval(api_response)
     file_info = {}
-    for item in api_response['blob']['content']:
-        if item['type'] == 'file':
-            file_info[item['url']] = item['path']
+    def process_items(items, file_info):
+        for item in items:
+            if item['type'] == 'file':
+                file_info[item['url']] = item['path']
+            elif item['type'] == 'dir':
+                process_items(item['content'], file_info)  # Recursive call
+
+    file_info = {}
+    process_items(api_response['blob']['content'], file_info)
 
     
     summarize_file_prompt = PromptTemplate.from_template("""You are a chatbot that assists users in navigating through code files.
@@ -88,6 +103,7 @@ def summarize_repo(api_response, token):
     return repo_sum
 
 
+
 llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
 chain = prompt | llm | StrOutputParser()
 
@@ -109,296 +125,21 @@ def get_github_file_content(url:str, token:str):
         return "Error: Unexpected response"
 
 
-
-chathistory=[]
 async def main(question:str, codeurl) -> str:
     if question == "exit":
         return "Goodbye"
         
     gitfile = get_github_file_content(codeurl, ghtoken)
     searchquestions = create_search_qns(question, gitfile)
-    # print("------------------------------------------------------")
-    # print(searchquestions)
-    # print("------------------------------------------------------")
-    # print("------------------------------------------------------")
-    # print(searchquestions)
-    # print("------------------------------------------------------")
     searchresults = {}
     for qn in searchquestions:
         searchresults[qn] = await searcher.search_and_get_content(qn)
-        # print(f"{await searcher.search_and_get_content(qn)}\n\n\n\n\n")
-    # print("------------------------------------------------------")
-    # print(searchresults)
-    # print("------------------------------------------------------")
-    
-    # response = summarize_chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults})
-
     response = chain.invoke({"question": question, "context":gitfile, "chathistory": chathistory[:10], "searchresults": searchresults})
     chathistory.append((f"Human: {question}", f"AI: {response}", f"Search Results: {searchresults}"))
     return response
 
 
-# print(asyncio.run(main("what is this about?", "https://api.github.com/repos/yashwantherukulla/SpeakBot/contents/va_bing.py")))
+# print(asyncio.run(main("what is this about?", "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/.eslintrc.json")))
 
 
-api_response = {
-  "blob": {
-    "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-    "content": [
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": ".eslintrc.json",
-        "path": ".eslintrc.json",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/.eslintrc.json"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": ".gitignore",
-        "path": ".gitignore",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/.gitignore"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "README copy.md",
-        "path": "README copy.md",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/README%20copy.md"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "README.md",
-        "path": "README.md",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/README.md"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "next.config.js",
-        "path": "next.config.js",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/next.config.js"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "package-lock.json",
-        "path": "package-lock.json",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/package-lock.json"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "package.json",
-        "path": "package.json",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/package.json"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/pages",
-        "content": [
-          {
-            "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/pages/rd",
-            "content": [
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/pages/rd",
-                "content": None,
-                "name": "[data].tsx",
-                "path": "pages/rd/[data].tsx",
-                "type": "file",
-                "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/pages/rd/[data].tsx"
-              },
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/pages/rd",
-                "content": None,
-                "name": "redirect.module.css",
-                "path": "pages/rd/redirect.module.css",
-                "type": "file",
-                "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/pages/rd/redirect.module.css"
-              }
-            ],
-            "name": "rd",
-            "type": "dir",
-            "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/pages/rd"
-          }
-        ],
-        "name": "pages",
-        "type": "dir",
-        "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/pages"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "postcss.config.js",
-        "path": "postcss.config.js",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/postcss.config.js"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public",
-        "content": [
-          {
-            "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public/data",
-            "content": [
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public/data/redirect",
-                "content": [
-                  {
-                    "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public/data/redirect",
-                    "content": None,
-                    "name": "redirect.json",
-                    "path": "public/data/redirect/redirect.json",
-                    "type": "file",
-                    "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/public/data/redirect/redirect.json"
-                  }
-                ],
-                "name": "redirect",
-                "type": "dir",
-                "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public/data/redirect"
-              }
-            ],
-            "name": "data",
-            "type": "dir",
-            "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public/data"
-          },
-          {
-            "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public",
-            "content": None,
-            "name": "next.svg",
-            "path": "public/next.svg",
-            "type": "file",
-            "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/public/next.svg"
-          },
-          {
-            "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public",
-            "content": None,
-            "name": "vercel.svg",
-            "path": "public/vercel.svg",
-            "type": "file",
-            "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/public/vercel.svg"
-          }
-        ],
-        "name": "public",
-        "type": "dir",
-        "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/public"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src",
-        "content": [
-          {
-            "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app",
-            "content": [
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app",
-                "content": None,
-                "name": "favicon.ico",
-                "path": "src/app/favicon.ico",
-                "type": "file",
-                "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/src/app/favicon.ico"
-              },
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app",
-                "content": None,
-                "name": "globals.css",
-                "path": "src/app/globals.css",
-                "type": "file",
-                "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/src/app/globals.css"
-              },
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app",
-                "content": None,
-                "name": "layout.tsx",
-                "path": "src/app/layout.tsx",
-                "type": "file",
-                "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/src/app/layout.tsx"
-              },
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app",
-                "content": None,
-                "name": "page.tsx",
-                "path": "src/app/page.tsx",
-                "type": "file",
-                "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/src/app/page.tsx"
-              },
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app/projects",
-                "content": [
-                  {
-                    "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app/projects",
-                    "content": None,
-                    "name": "page.tsx",
-                    "path": "src/app/projects/page.tsx",
-                    "type": "file",
-                    "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/src/app/projects/page.tsx"
-                  }
-                ],
-                "name": "projects",
-                "type": "dir",
-                "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app/projects"
-              },
-              {
-                "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app/rd",
-                "content": [
-                  {
-                    "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app/rd",
-                    "content": None,
-                    "name": "page.tsx",
-                    "path": "src/app/rd/page.tsx",
-                    "type": "file",
-                    "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/src/app/rd/page.tsx"
-                  }
-                ],
-                "name": "rd",
-                "type": "dir",
-                "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app/rd"
-              }
-            ],
-            "name": "app",
-            "type": "dir",
-            "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src/app"
-          }
-        ],
-        "name": "src",
-        "type": "dir",
-        "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/src"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "tailwind.config.js",
-        "path": "tailwind.config.js",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/tailwind.config.js"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "tailwind.config.ts",
-        "path": "tailwind.config.ts",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/tailwind.config.ts"
-      },
-      {
-        "api_url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/",
-        "content": None,
-        "name": "tsconfig.json",
-        "path": "tsconfig.json",
-        "type": "file",
-        "url": "https://github.com/sarveshdakhore/sarveshdakhore/blob/main/tsconfig.json"
-      }
-    ],
-    "name": "sarveshdakhore",
-    "type": "dir",
-    "url": "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/"
-  }
-}
-
-
-# print(summarize_repo(api_response, ghtoken))
+print(summarize_repo(api_response, ghtoken))
