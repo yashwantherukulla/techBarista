@@ -7,12 +7,13 @@ from langchain_core.output_parsers import StrOutputParser
 from Searcher import Searcher
 import requests
 import base64
+import asyncio
 
 from chat_hist import chathistory
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-ghtoken = ""
+ghtoken = "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"
 def create_search_qns(question, context):
 
     SQprompt = PromptTemplate.from_template("""You are an expert question asker, Now your task is to ask questions which expand upon a question given using the context (which is most probably a code file) as reference and guide.
@@ -54,7 +55,8 @@ prompt = PromptTemplate.from_template("""You are a chatbot that assists users in
                                       search results: {searchresults}""")
 
 
-async def summarize_repo(api_response:dict, token):
+def summarize_repo(api_response:str, token):
+    api_response = eval(api_response)
     file_info = {}
     def process_items(items, file_info):
         for item in items:
@@ -68,7 +70,6 @@ async def summarize_repo(api_response:dict, token):
 
     
     summarize_file_prompt = PromptTemplate.from_template("""You are a chatbot that assists users in navigating through code files.
-                                                  write a summary of the given code file under 150 words.
                                                   you will get one input, "context", which represents a file in a git repository.
                                                   Now, you are an expert summarizer and your summaries are one the best.
                                                   You should provide a brief summary of the code file, including its purpose, functionality, and any other relevant information.
@@ -106,6 +107,7 @@ chain = prompt | llm | StrOutputParser()
 
 searcher = Searcher()
 
+
 def get_github_file_content(url:str, token:str):
     headers = {'Authorization': f'token {token}'}
     response = requests.get(url, headers=headers)
@@ -137,15 +139,23 @@ async def main(question:str, codeurl) -> str:
 
 # print(asyncio.run(main("what is this about?", "https://api.github.com/repos/sarveshdakhore/sarveshdakhore/contents/.eslintrc.json")))
 
-import httpx
+import requests
 
-async def get_structure_comb_dict(url):
-    link = "http://127.0.0.1:8000/get_structure_comb"
-    data = {
-        "key": url
-    }
-    timeout = httpx.Timeout(10.0, connect=20.0)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(link, json=data)
-    data = response.json()
-    return data
+# The URL of the endpoint
+url = "http://127.0.0.1:8000/get_structure_comb"
+
+# The data to send in the body
+data = {
+  "key": "https://github.com/devHarshShah/techBarista"
+}
+
+# Send the POST request
+response = requests.post(url, json=data)
+
+# Get the response as a Python dictionary
+data = response.json()
+
+print(type(data))  # This should print <class 'dict'>
+
+# Access the 'content' field in the 'blob' field
+print(data["blob"]["content"])

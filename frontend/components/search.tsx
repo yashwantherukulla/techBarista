@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FolderStructure from './folderstructure';
 import { Input, Button } from '@nextui-org/react';
 import ReactMarkdown from 'react-markdown';
@@ -16,9 +16,11 @@ interface ChatItem {
 
 const Search = ({ data }: { data: Item[] }) => {
   const [inputValue, setInputValue] = useState(''); // add state for the input value
-  const [selectedFile, setSelectedFile] = useState(''); // add state for the selected file
+  const [selectedFile, setSelectedFile] = useState('None'); // add state for the selected file
   const [path, setPath] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatItem[]>([]); // add state for the chat history
+  const [loading, setLoading] = useState(true); // add state for loading
+  const [summary, setSummary] = useState('Loading summary of repo...'); // add state for the summary
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value); // update the input value when the input changes
@@ -27,7 +29,7 @@ const Search = ({ data }: { data: Item[] }) => {
   const handleButtonClick = async () => {
     setInputValue('');
     // Check if a file has been selected and an input value has been entered
-    if (!selectedFile || !inputValue) {
+    if (!inputValue) {
       console.error('A file must be selected and a query must be entered before sending a request');
       return;
     }
@@ -44,7 +46,7 @@ const Search = ({ data }: { data: Item[] }) => {
       },
       body: JSON.stringify({
         repo_url: repo,
-        file_path: path,
+        file_path: selectedFile === 'None' ? 'None' : path,
       }),
     });
 
@@ -73,14 +75,44 @@ const Search = ({ data }: { data: Item[] }) => {
 
     const searchData = await searchResponse.json();
 
+    console.log(searchData);
+
     // Add the response to the chat history
     setChatHistory((prevChatHistory) => [...prevChatHistory, { type: 'response', content: searchData.response }]);
   };
 
   const handleFileSelect = async (filePath: string, fileName: string) => {
-    setSelectedFile(fileName); // update the selected file when a file is clicked
+    // update the selected file when a file is clicked
+    setSelectedFile(fileName === '' ? 'None' : fileName);
     let fullpath = filePath + '/' + fileName;
     setPath(fullpath);
+  };
+
+  const fetchSummaryAndUpdateChat = async () => {
+    let repo = localStorage.getItem('repo-link');
+    const response = await fetch('http://127.0.0.1:8000/ask_code_llm', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: repo,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Failed to get the summary');
+      setSummary('Failed to load summary');
+      setLoading(false);
+      return;
+    }
+
+    const data = await response.json();
+    setSummary(data[0].response);
+    setLoading(false);
+
+    // Add the summary as the first response in the chat history
+    setChatHistory((prevChatHistory) => [...prevChatHistory, { type: 'response', content: data[0].response }]);
   };
 
   return (
@@ -107,7 +139,7 @@ const Search = ({ data }: { data: Item[] }) => {
           })}
         </div>
         <div className="w-full p-10 flex items-center">
-          <div className="w-[30%] border-2 border-purple-500 rounded-l-xl p-[0.36rem] flex items-center justify-center bg-purple-200 bg-opacity-[20%] text-purple-500">{selectedFile}</div>
+          <div className="w-[30%] border-2 border-purple-500 rounded-l-xl p-[0.36rem] flex items-center justify-center bg-purple-200 bg-opacity-[20%] text-purple-500">{selectedFile === 'None' ? 'None' : selectedFile}</div>
           <Input type="email" variant="bordered" radius="none" value={inputValue} onChange={handleInputChange} />
           <Button color="primary" radius="none" style={{ backgroundColor: 'rgba(59, 130, 246, 0.3)', border: '2px solid rgb(59,130,246)', color: 'rgb(59,130,246)', fontWeight: 'bold' }} className="rounded-r-xl" onClick={handleButtonClick}>
             Send

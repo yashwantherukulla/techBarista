@@ -1,11 +1,16 @@
 import base64
+import logging
+logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware  # Import the CORS middleware
 from pydantic import BaseModel
 import requests
 import asyncio
 import sys
-from main import main
+from main import main, summarize_repo, get_structure_comb_dict
+from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse
 
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -21,7 +26,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-token = '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'
+token = ''
 
 def get_repo_structure_comb(repo_url, path=''):
     # Extract the owner and repo name from the URL
@@ -33,7 +38,6 @@ def get_repo_structure_comb(repo_url, path=''):
     # Send a GET request to GitHub API
     headers = {'Authorization': f'token {token}'}
     response = requests.get(api_url, headers=headers)
-    
     # If the request was successful, process the JSON response
     if response.status_code == 200:
         contents = response.json()
@@ -115,8 +119,9 @@ class RepoUrl(BaseModel):
     key: str
 
 class QueryCodeUrl(BaseModel):
-    query: str
-    codeurl: str
+    codeurl: str = 'None'
+    query: str = ''
+    url: str = ''
 
 class RepoUrlFilePath(BaseModel):
     repo_url: str
@@ -145,16 +150,28 @@ async def get_structure_combine(data: RepoUrl):
 async def askCode(data: QueryCodeUrl):
     question = data.query
     codeurl = data.codeurl
+    if codeurl == 'None' and question.strip() == '':
+        return RedirectResponse(url='/summarize_using_llm')
     response = await main(question, codeurl)
-    return {'response': response}
+    return {'response': response, 'question': question, 'codeurl': codeurl}
+
+
 
 @app.post('/summarize_using_llm')
 async def sumCode(data: QueryCodeUrl):
-    question = data.query
-    codeurl = data.codeurl
-    response = await main(question, codeurl)
-    return {'response': response}
-
+    try:
+        codeurl = data.url
+        logging.info("Received codeurl: %s", codeurl)
+        stru = await get_structure_comb_dict(codeurl)
+        logging.info("Got structure: %s", stru)
+        response = await summarize_repo(stru,token)
+        logging.info("Got response: %s", response)
+        return {'response': response}, 200
+    except Exception as e:
+        logging.exception("An error occurred: %s", e)
+        return {'error': str(e)}, 500
+    
+    
 @app.post('/get_file_url')
 async def get_file_url(data: RepoUrlFilePath):
     repo_url = data.repo_url
