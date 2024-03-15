@@ -10,9 +10,11 @@ import base64
 
 from chat_hist import chathistory
 
+global repo_summary
+
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-ghtoken = ""
+ghtoken = "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"
 
 llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
 
@@ -66,6 +68,7 @@ Now, let's generate a response for the given question: {question}, context: {con
 
 
 async def summarize_repo(api_response:dict, token):
+    global repo_summary
     file_info = {}
     def process_items(items, file_info):
         for item in items:
@@ -115,7 +118,7 @@ For example, if the path is '/src/app/index.js', the summary should reflect the 
 Now, let's generate an overview for the given repository information: {abt_files}.""")
     repo_sum_chain = summarizer_prompt | llm | StrOutputParser()
     repo_sum = repo_sum_chain.invoke({"abt_files": file_summaries})
-
+    repo_summary = summarize_repo(api_response, ghtoken)
     return repo_sum
 
 def summarize_dir(api_response_dir:dict, token):
@@ -165,10 +168,7 @@ For example, if the path is '/src/app/index.js', the summary should reflect the 
 Now, let's generate an overview for the given repository information: {abt_dir_files}.""")
     dir_sum_chain = summarizer_dir_prompt | llm | StrOutputParser()
     dir_sum = dir_sum_chain.invoke({"abt_dir_files": file_summaries})
-
     return dir_sum
-
-repo_summary = summarize_repo(api_response, ghtoken)
 
 
 chain = prompt | llm | StrOutputParser()
@@ -208,8 +208,6 @@ async def main(question:str, codeurl="None") -> str:
     chathistory.append((f"Human: {question}", f"AI: {response}", f"Search Results: {searchresults}"))
     return response
 
-
-print(asyncio.run(main("what is this about?", "https://api.github.com/repos/devHarshShah/techBarista/frontend/postcss.config.js")))
 
 import httpx
 

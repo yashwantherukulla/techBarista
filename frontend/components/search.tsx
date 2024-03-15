@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FolderStructure from './folderstructure';
 import { Input, Button } from '@nextui-org/react';
 import ReactMarkdown from 'react-markdown';
@@ -21,6 +21,8 @@ const Search = ({ data }: { data: Item[] }) => {
   const [chatHistory, setChatHistory] = useState<ChatItem[]>([]); // add state for the chat history
   const [loading, setLoading] = useState(true); // add state for loading
   const [summary, setSummary] = useState('Loading summary of repo...'); // add state for the summary
+
+  const hasFetchedSummary = useRef(false);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value); // update the input value when the input changes
@@ -114,6 +116,13 @@ const Search = ({ data }: { data: Item[] }) => {
     // Add the summary as the first response in the chat history
     setChatHistory((prevChatHistory) => [...prevChatHistory, { type: 'response', content: data[0].response }]);
   };
+
+  useEffect(() => {
+    if (!hasFetchedSummary.current) {
+      fetchSummaryAndUpdateChat();
+      hasFetchedSummary.current = true;
+    }
+  }, []);
 
   return (
     <div className="flex flex-row h-[82vh]">
