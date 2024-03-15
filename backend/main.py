@@ -399,28 +399,5 @@ api_response = {
   }
 }
 
-import requests
-import json
 
-# Your data to be sent as POST request's body
-
-data = {
-    "key": "https://github.com/devHarshShah/techBarista"
-}
-
-json_data = json.dumps(data)
-
-try:
-    response = requests.post('http://127.0.0.1:5000/get_structure_comb', data=json_data, headers={'Content-Type': 'application/json'})
-    response.raise_for_status()  # Raises a HTTPError if the status is 4xx, 5xx
-
-except requests.exceptions.RequestException as err:
-    print(f"An error occurred: {err}")
-    # Handle the error here or re-raise if you want to stop the program in case of error
-
-else:
-    print("POST request was successful.")
-    print(response.json())
-
-print(type(api_response))
 print(summarize_repo(api_response, ghtoken))
